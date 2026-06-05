@@ -7,19 +7,33 @@ const BASE_URL = `https://api.exchangeratesapi.io/latest?access_key=${API_KEY}`;
 
 function App() {
   const [currencyOptions, setCurrencyOptions] = useState([]);
-  console.log(currencyOptions);
-
+ const [fromCurrency, setFromCurrency] = useState();
+ const [toCurrency, setToCurrency] = useState();
+ const [exchangeRate, setExchangeRate] = useState();
+ const [amount, setAmount] = useState(1);
+ const [amountInFromCurency, setAmountInFromCurrency] =useState(true);
+ console.log(exchangeRate);
 
   useEffect(() => {
     fetch(BASE_URL)
       .then(res => res.json())
       .then(data => {
         if (!data || !data.rates) {
-          console.error('Exchange API response missing rates:', data);
+          console.error('Exchange API response missing rates or data:', data);
           return;
         }
 
-        setCurrencyOptions([data.base, ...Object.keys(data.rates)]);
+        if (data.success === false) {
+          console.error('API Error:', data.error?.info || 'Unknown error');
+          return;
+        }
+
+        const firstCurrency = Object.keys(data.rates)[0];
+        const uniqueCurrencies = [...new Set([data.base, ...Object.keys(data.rates)])];
+        setCurrencyOptions(uniqueCurrencies);
+        setFromCurrency(data.base);
+        setToCurrency(firstCurrency);
+        setExchangeRate(data.rates[firstCurrency]);
       })
       .catch(error => {
         console.error('Failed to fetch exchange rates:', error);
@@ -29,9 +43,15 @@ function App() {
   return (
     <>
       <h1>Convert</h1>
-      <CurrencyRow />
+      <CurrencyRow currencyOptions={currencyOptions}
+       selectedCurrency={fromCurrency}
+        onChangeCurrency={e => setFromCurrency(e.target.value)}
+       />
       <div className='equals'>=</div>
-      <CurrencyRow />
+      <CurrencyRow currencyOptions={currencyOptions}
+       selectedCurrency={toCurrency}
+       onChangeCurrency={e => setToCurrency(e.target.value)}
+       />
     </>
   );
 }
